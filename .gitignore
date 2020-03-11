@@ -1,2 +1,5 @@
 JavaScript/.env
 JavaScript/node_modules/
+
+Rust/.env
+Rust/target

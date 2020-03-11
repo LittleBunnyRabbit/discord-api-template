@@ -22,7 +22,7 @@ async function createClient() {
     client.on("warn", (info) => Universal.sendLog("warn", `Bot warnning:\n${info}`));
 
     await createCommands();
-    await client.login(process.env.BOT_TOKEN);
+    await client.login(process.env.DISCORD_TOKEN);
     await client.user.setActivity(`My prefix is: "${process.env.PREFIX}"`, { type: "PLAYING" });
 
     return client;
