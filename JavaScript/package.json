@@ -1,0 +1,16 @@
+{
+  "name": "java-script",
+  "version": "1.0.0",
+  "description": "Example Discord bot",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "author": "lilBunnyRabbit",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^11.5.1",
+    "dotenv": "^8.2.0",
+    "fs": "0.0.1-security"
+  }
+}
