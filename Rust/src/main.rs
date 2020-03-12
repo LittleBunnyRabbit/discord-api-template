@@ -1,43 +1,91 @@
+mod commands;
+
 extern crate dotenv;
 use dotenv::dotenv;
-use std::env;
 
-use serenity::client::Client;
-use serenity::model::channel::Message;
-use serenity::prelude::{EventHandler, Context};
-use serenity::framework::standard::{
-    StandardFramework,
-    CommandResult,
-    macros::{
-        command,
-        group
-    }
+use std::{
+    collections::HashSet,
+    env,
+    sync::Arc,
 };
 
-#[group]
-#[commands(ping)]
-struct General;
+use serenity::{
+    client::bridge::gateway::ShardManager,
+    framework::{
+        StandardFramework,
+        standard::macros::group,
+    },
+    model::{event::ResumedEvent, gateway::Ready},
+    prelude::*,
+};
+
+use log::{error, info};
+
+use commands::{
+    math::*,
+    meta::*,
+    owner::*,
+};
+
+struct ShardManagerContainer;
+
+impl TypeMapKey for ShardManagerContainer {
+    type Value = Arc<Mutex<ShardManager>>;
+}
 
 struct Handler;
 
-impl EventHandler for Handler {}
+impl EventHandler for Handler {
+    fn ready(&self, _: Context, ready: Ready) {
+        info!("Connected as {}", ready.user.name);
+        println!("Connected as {}", ready.user.name);
+    }
+
+    fn resume(&self, _: Context, _: ResumedEvent) {
+        info!("Resumed");
+        println!("Resumed");
+    }
+}
+
+#[group]
+#[commands(
+    multiply, sum,
+    ping, 
+    quit 
+)]
+struct General;
 
 fn main() {
     dotenv().ok();
 
-    let mut client = Client::new(&env::var("DISCORD_TOKEN").expect("token"), Handler)
-                   .expect("Error creating client");
+    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+
+    let mut client = Client::new(&token, Handler).expect("Err creating client");
+
+    {
+        let mut data = client.data.write();
+        data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
+    }
+
+    let owners = match client.cache_and_http.http.get_current_application_info() {
+        Ok(info) => {
+            let mut set = HashSet::new();
+            set.insert(info.owner.id);
+
+            set
+        },
+        Err(why) => panic!("Couldn't get application info: {:?}", why),
+    };
+
     client.with_framework(StandardFramework::new()
-          .configure(|c| c.prefix(&env::var("PREFIX").expect("prefix")))
-          .group(&GENERAL_GROUP));
+        .configure(|c| c
+            .owners(owners)
+            .prefix("!")
+        )
+        .group(&GENERAL_GROUP));
+
 
     if let Err(why) = client.start() {
-        println!("An error occurred while running the client: {:?}", why);
+        error!("Client error: {:?}", why);
     }
-}
-
-#[command]
-fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Pong!")?;
-    Ok(())
 }
